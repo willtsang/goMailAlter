@@ -14,9 +14,8 @@ func main() {
 
 	defer Logger.Close()
 
-	begin := 0
+	for i := 0; i < 100; i++ {
 
-	for i := begin; i < 100; i++ {
 		go test(i)
 	}
 
@@ -34,7 +33,7 @@ func test(gorountineNum int) {
 	for {
 		log.Debug("start%d", gorountineNum)
 
-		response, err := http.Get("http://www.baidu.com")
+		response, err := http.Get("")
 
 		if err != nil {
 			panic(err.Error())
