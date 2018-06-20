@@ -12,6 +12,7 @@ import (
 	"strings"
 	"regexp"
 	"strconv"
+	"github.com/go-redis/redis"
 )
 
 func main() {
@@ -251,16 +252,47 @@ func timer(ws *websocket.Conn) {
 func monitorMate() string {
 
 	data := struct {
-		DiskStat   *diskStat   `json:"diskStat"`
-		CpuStat    *cpuStat    `json:"cpuStat"`
-		MemoryStat *memoryStat `json:"memoryStat"`
+		DiskStat   *diskStat         `json:"diskStat"`
+		CpuStat    *cpuStat          `json:"cpuStat"`
+		MemoryStat *memoryStat       `json:"memoryStat"`
+		RedisStat  map[string]string `json:"redisStat"`
 	}{}
 
 	data.DiskStat = getDiskMonitor()
-
+	data.RedisStat = getRedisMonitor()
 	data.CpuStat, data.MemoryStat = getStatMonitor()
 
 	result, _ := json.Marshal(data)
 
 	return string(result)
+}
+
+func getRedisMonitor() map[string]string {
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	_, err := redisClient.Ping().Result()
+
+	stringMap := make(map[string]string)
+
+	if err != nil {
+		return stringMap
+	}
+
+	output := redisClient.Info("Memory")
+	infoMap := strings.Split(output.Val(), "\r\n")
+	infoMap = infoMap[1:] // remove #Memory
+
+	for _, value := range infoMap {
+
+		valueSlice := strings.Split(value, ":")
+
+		if len(valueSlice) == 2 {
+			stringMap[valueSlice[0]] = valueSlice[1]
+		}
+	}
+
+	return stringMap
 }
